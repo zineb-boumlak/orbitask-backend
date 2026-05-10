@@ -20,18 +20,31 @@ if (!process.env.JWT_SECRET) {
 
 const app = express();
 
+const allowedOrigins = [
+  'https://orbitask-frontend.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS bloqué pour: ${origin}`), false);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
 };
 
 // CORS EN PREMIER — avant helmet et tout le reste
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // preflight explicite
 
-// Helmet APRES cors, avec crossOriginResourcePolicy désactivé
+// Helmet APRES cors
 app.use(helmet({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false }));
 app.use(mongoSanitize());
 app.use(express.json({ limit: '10kb' }));
